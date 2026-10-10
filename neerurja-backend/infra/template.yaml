@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  NeerUrja backend: API Gateway (HTTP API) -> Lambda (FastAPI + Mangum) -> S3 demo scenarios,
+  with structured logs (AWS Lambda Powertools) in CloudWatch. No database, no VPC, no NAT gateway,
+  no always-on compute.
+
+Parameters:
+  FrontendOrigin:
+    Type: String
+    Default: http://localhost:5173
+    Description: >
+      Allowed browser origin(s) for CORS, comma-separated, no trailing slash
+      (e.g. https://main.d1234abcd.amplifyapp.com). Use * only for throw-away testing.
+  DemoObjectKey:
+    Type: String
+    Default: scenarios/demo_scenario.json
+    Description: S3 key of the demo scenario file inside the demo bucket.
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues: [DEBUG, INFO, WARNING, ERROR]
+  LogRetentionDays:
+    Type: Number
+    Default: 14
+    Description: CloudWatch Logs retention for the function log group.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [x86_64]
+    Timeout: 29            # API Gateway HTTP API integrations time out at 30 s
+    MemorySize: 1024       # CPU scales with memory; the optimizer is pure Python
+
+Resources:
+  DemoScenarioBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  ApiFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-api
+      RetentionInDays: !Ref LogRetentionDays
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      # CORS is handled by the FastAPI CORSMiddleware (configured through FRONTEND_ORIGIN),
+      # so it is deliberately not duplicated here.
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20     # protects the prototype's budget from runaway clients
+        ThrottlingRateLimit: 10
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-api
+      Description: NeerUrja simulator, strategies and optimizer
+      CodeUri: ../backend/
+      Handler: app.main.handler
+      LoggingConfig:
+        LogGroup: !Ref ApiFunctionLogGroup
+      Environment:
+        Variables:
+          DEMO_BUCKET: !Ref DemoScenarioBucket
+          DEMO_OBJECT_KEY: !Ref DemoObjectKey
+          FRONTEND_ORIGIN: !Ref FrontendOrigin
+          POWERTOOLS_SERVICE_NAME: neerurja-api
+          POWERTOOLS_LOG_LEVEL: !Ref LogLevel
+      Policies:
+        # Least privilege: read ONE object. (CloudWatch Logs access comes from the basic
+        # execution role SAM attaches automatically.)
+        - Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action: s3:GetObject
+              Resource: !Sub arn:${AWS::Partition}:s3:::${DemoScenarioBucket}/${DemoObjectKey}
+      Events:
+        AnyRoute:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: Base URL for VITE_API_BASE_URL (no trailing slash)
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}
+  DemoBucketName:
+    Description: Upload data/demo_scenario.json here (key = DemoObjectKey)
+    Value: !Ref DemoScenarioBucket
+  FunctionLogGroup:
+    Description: CloudWatch log group for the API function
+    Value: !Ref ApiFunctionLogGroup

@@ -1,0 +1,62 @@
+# ─── NeerUrja Root .gitignore ──────────────────────────────────────────
+# Root-level ignore rules for frontend, backend, infra, and local tooling.
+
+# Dependencies & Package Managers
+node_modules/
+.pnp
+.pnp.js
+
+# Build Outputs & Artifacts
+dist/
+frontend/dist/
+build/
+.aws-sam/
+samconfig.toml
+*.zip
+*.tar.gz
+*.tgz
+
+# Environment & Secret Files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+.env.*
+!.env.example
+!.env*.example
+
+# Python & Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Logs & Temporary Files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.tmp
+*.bak
+
+# IDE & Operating System Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.suo
+*.user
+*.userossc

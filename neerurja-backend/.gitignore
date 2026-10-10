@@ -1,0 +1,30 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# AWS SAM
+.aws-sam/
+samconfig.toml
+.env
+.env.*
+!.env.example
+
+# Node / frontend build output
+node_modules/
+frontend/dist/
+.env.local
+*.local
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Packaged output
+*.zip

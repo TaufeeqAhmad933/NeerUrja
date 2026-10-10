@@ -1,0 +1,6 @@
+# Runtime dependencies (these are what `sam build` packages into the Lambda).
+# boto3 is NOT listed: the Lambda Python runtime provides it. For local S3 tests use requirements-dev.txt.
+fastapi==0.143.0
+mangum==0.22.0
+pydantic==2.14.0
+aws-lambda-powertools==3.35.0

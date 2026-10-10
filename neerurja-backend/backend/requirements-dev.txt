@@ -1,0 +1,6 @@
+# Local development and testing.
+-r requirements.txt
+pytest==9.1.1
+httpx==0.28.1
+uvicorn==0.54.0   # local server only; not needed in Lambda
+boto3>=1.34
